@@ -1,6 +1,6 @@
 // --- ÁREA DE CONFIGURAÇÃO DE CLIENTES (HARDCODED) ---
 const USUARIOS_VALIDOS = {
-    "familia": "marique10",
+    "familia@duckflix.com": "marique10",
     "teste@duckflix.com": "1234",
 };
 // -----------------------------------------
