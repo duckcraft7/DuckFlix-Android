@@ -1,0 +1,75 @@
+/* Reset básico e fontes */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: #141414; /* Preto de fundo */
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh; /* Ocupa a tela inteira */
+}
+
+.login-container {
+    background-color: #000000;
+    padding: 50px 60px;
+    border-radius: 8px;
+    text-align: center;
+    width: 350px;
+    border-top: 4px solid #FFD700; /* Detalhe amarelo em cima */
+}
+
+.logo {
+    color: #FFD700; /* Amarelo ouro! */
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 4.5em;
+    letter-spacing: 3px;
+    margin-bottom: 30px;
+}
+
+input {
+    width: 100%;
+    padding: 16px;
+    margin-bottom: 15px;
+    border: 1px solid #333;
+    border-radius: 5px;
+    background-color: #333;
+    color: #fff;
+    font-size: 1em;
+}
+
+button {
+    width: 100%;
+    padding: 16px;
+    border: none;
+    border-radius: 5px;
+    background-color: #FFD700; /* Botão amarelo */
+    color: #000; /* Texto preto para contrastar */
+    font-size: 1.1em;
+    font-weight: bold;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+#error-message {
+    margin-top: 20px;
+    color: #e87c03; /* Laranja para avisos */
+    height: 20px; /* Garante que o layout não pule */
+}
+
+
+/* ... (todo o código anterior do login_style.css continua igual) ... */
+
+/* ESTILO ADICIONADO PARA O CONTROLE REMOTO */
+.focusable.focused {
+    transform: scale(1.05);
+    border: 3px solid #FFD700; /* Borda amarela forte para destacar */
+    box-shadow: 0 0 15px rgba(255, 215, 0, 0.6); /* Brilho amarelo */
+}
+
+/* ... (o resto do código do login_style.css continua igual) ... */
