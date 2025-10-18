@@ -23,8 +23,6 @@ jobs:
       uses: actions/setup-node@v4
       with:
         node-version: '18' # Uma versão LTS estável do Node.js
-        cache: 'npm' # Habilita cache para acelerar instalações futuras (opcional)
-
     - name: Install Cordova globally
       run: npm install -g cordova
 
