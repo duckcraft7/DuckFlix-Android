@@ -6,16 +6,26 @@
     <meta name="format-detection" content="telephone=no">
     <meta name="msapplication-tap-highlight" content="no">
     <meta name="viewport" content="initial-scale=1, width=device-width, viewport-fit=cover, user-scalable=no">
-
     <title>DuckFlix - Catálogo</title>
-    <link rel="stylesheet" href="style.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="stylesheet" href="style.css"> <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&display=swap" rel="stylesheet">
+    <style>
+        .movie-card.focused { transform: scale(1.08); border: 4px solid #FFD700 !important; box-shadow: 0 0 20px rgba(255, 215, 0, 0.7) !important; z-index: 10; outline: none; }
+        .progress-bar { height: 5px; background-color: rgba(100, 100, 100, 0.7); width: 90%; position: absolute; bottom: 5px; left: 5%; border-radius: 3px; overflow: hidden;}
+        .progress-bar-inner { height: 100%; background-color: #FFD700; width: 0%; transition: width 0.3s ease;}
+        .movie-card { position: relative; }
+        #logout-button { position: absolute; top: 20px; right: 20px; background-color: #FFD700; color: #000; border: none; padding: 8px 15px; font-size: 14px; font-weight: bold; border-radius: 5px; cursor: pointer; z-index: 50; }
+        #logout-button.focused { transform: scale(1.1); box-shadow: 0 0 10px #FFD700;}
+        .hidden { display: none !important; }
+        .loading-catalog { text-align: center; font-size: 1.5em; margin-top: 50px; color: #ccc;}
+    </style>
 </head>
-<body class="home-page"> <button id="logout-button" class="focusable">Sair</button>
+<body class="home-page">
 
-    <div id="catalog-content">
+    <button id="logout-button" class="focusable hidden">Sair</button>
+
+    <div id="catalog-content" class="hidden">
         <header class="main-header">
             <h1>DuckFlix</h1>
             <p>Seu cinema particular.</p>
@@ -30,62 +40,98 @@
         </footer>
     </div>
 
+     <div id="loading-indicator" class="loading-catalog">
+        Verificando sessão...
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            // --- VERIFICAÇÃO SIMPLES DE LOGIN (SEM FIREBASE) ---
-            // Se não encontrar a flag, volta pro login
-            if (localStorage.getItem('duckflix_isLoggedIn') !== 'true') {
-                 console.log("Usuário não logado, redirecionando para index.html");
+            // --- VERIFICAÇÃO SIMPLES DE LOGIN ---
+            const isLoggedIn = localStorage.getItem('duckflix_isLoggedIn') === 'true';
+            const loadingIndicator = document.getElementById('loading-indicator');
+            const catalogContent = document.getElementById('catalog-content');
+            const logoutButton = document.getElementById('logout-button');
+
+            console.log("Home: Verificando login. Status:", isLoggedIn); // Diagnóstico
+
+            if (!isLoggedIn) {
+                console.log("Home: Não logado. Redirecionando para index.html");
                 window.location.replace('index.html');
-                return; // Impede o resto do script de rodar
+                return; // Impede o resto de rodar
             }
 
-            // --- REFERÊNCIAS ---
+            // Se logado, mostra o conteúdo e esconde o indicador
+            loadingIndicator.classList.add('hidden');
+            catalogContent.classList.remove('hidden');
+            logoutButton.classList.remove('hidden');
+            console.log("Home: Logado. Carregando catálogo...");
+
+            // --- REFERÊNCIAS e Variáveis Globais ---
             const listaUrl = 'https://duckflix-lista.vercel.app/lista.json'; // Carrega lista local!
             const catalogMain = document.getElementById('catalog-main');
-            const logoutButton = document.getElementById('logout-button');
-            let allItems = [];
-            let focusableElements = [];
-            let currentFocusIndex = 0;
+            let allItems = []; // Array para guardar todos os itens da lista.json
+            let focusableElements = []; // Array para guardar todos os elementos focáveis (cards + botão)
+            let currentFocusIndex = 0; // Índice do elemento atualmente focado
 
-            // --- LÓGICA DE LOGOUT (SIMPLIFICADA) ---
+            // --- LÓGICA DE LOGOUT ---
             logoutButton.addEventListener('click', () => {
-                localStorage.removeItem('duckflix_isLoggedIn'); // Remove a flag
-                window.location.replace('index.html'); // Volta para o login
+                console.log("Home: Botão Sair clicado.");
+                localStorage.removeItem('duckflix_isLoggedIn'); // Remove a flag de login
+                window.location.replace('index.html'); // Volta para a tela de login
             });
 
-            // --- LÓGICA DO CATÁLOGO (Igual à versão anterior) ---
+            // --- LÓGICA DO CATÁLOGO ---
             function fetchLista() {
-                // (O código fetchLista, createMovieCard, createContinueWatchingSection permanecem iguais à versão anterior)
-                 if (catalogMain.querySelector('.movie-section')) return;
+                // Evita recarregar se o catálogo já foi construído
+                if (catalogMain.querySelector('.movie-section')) {
+                     console.log("Home: Catálogo já carregado.");
+                     setupNavigation(); // Garante que a navegação seja reativada
+                    return;
+                }
 
                 fetch(listaUrl)
                     .then(response => {
-                        if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status}`);
+                        if (!response.ok) throw new Error(`Erro HTTP! status: ${response.status} ao buscar ${listaUrl}`);
                         return response.json();
-                     })
+                    })
                     .then(data => {
-                        catalogMain.innerHTML = '';
-                        allItems = [];
-                        data.categorias.forEach(cat => cat.items.forEach(item => {
-                            // Adiciona ID se não existir (fallback)
-                            if(!item.id) item.id = item.titulo.replace(/\s+/g, '').toLowerCase() + item.ano;
-                            allItems.push(item);
-                        }));
+                        console.log("Home: lista.json carregado com sucesso.");
+                        catalogMain.innerHTML = ''; // Limpa "Carregando..."
+                        allItems = []; // Limpa antes de preencher
 
+                        // Garante que 'categorias' existe e é um array
+                        if (!data || !Array.isArray(data.categorias)) {
+                             throw new Error("Formato inválido do lista.json: 'categorias' não encontrado ou não é um array.");
+                        }
 
+                        // Coleta todos os itens para a seção "Continuar Assistindo"
+                        data.categorias.forEach(cat => {
+                            if (cat && Array.isArray(cat.items)) {
+                                cat.items.forEach(item => {
+                                    // Adiciona ID se não existir (fallback importante)
+                                    if(item && !item.id) item.id = (item.titulo || 'item').replace(/\s+/g, '').toLowerCase() + (item.ano || '');
+                                    if(item) allItems.push(item);
+                                });
+                            }
+                        });
+
+                        // Cria a seção "Continuar Assistindo" primeiro
                         createContinueWatchingSection();
 
+                        // Cria as seções normais do catálogo
                         data.categorias.forEach(categoria => {
+                             if (!categoria || !Array.isArray(categoria.items)) return; // Pula categorias inválidas
+
                             const section = document.createElement('section');
                             section.className = 'movie-section';
                             const title = document.createElement('h2');
-                            title.textContent = categoria.titulo;
+                            title.textContent = categoria.titulo || 'Categoria Sem Título';
                             section.appendChild(title);
                             const grid = document.createElement('div');
                             grid.className = 'movie-grid';
 
                             categoria.items.forEach(item => {
+                                if (!item) return; // Pula itens inválidos
                                 const cardLink = createMovieCard(item);
                                 cardLink.classList.add('focusable'); // Adiciona classe para navegação
                                 grid.appendChild(cardLink);
@@ -93,30 +139,210 @@
                             section.appendChild(grid);
                             catalogMain.appendChild(section);
                         });
+
+                        // Configura a navegação DEPOIS que todo o HTML foi criado
                         setupNavigation();
+                        console.log("Home: Catálogo construído e navegação ativada.");
                     })
                     .catch(error => {
-                         console.error('Erro ao carregar lista:', error);
-                        catalogMain.innerHTML = '<h2>Erro ao carregar o catálogo. Verifique o arquivo lista.json.</h2>';
+                        console.error('Home: Erro CRÍTICO ao carregar ou processar lista.json:', error);
+                        catalogMain.innerHTML = `<h2>Erro ao carregar o catálogo: ${error.message}. Verifique o arquivo lista.json.</h2>`;
                     });
             }
-             fetchLista(); // Chama o carregamento da lista
+            fetchLista(); // Chama o carregamento da lista
 
-             // (As funções createMovieCard e createContinueWatchingSection são as mesmas da versão anterior)
+            // --- FUNÇÃO PARA CRIAR CARD ---
              function createMovieCard(item, savedTime = 0) {
                 const cardLink = document.createElement('a');
-                cardLink.className = 'movie-card';
-                let playerLink = `player.html?id=${item.id}&src=${encodeURIComponent(item.videolink)}&title=${encodeURIComponent(item.titulo)}`;
+                cardLink.className = 'movie-card'; // 'focusable' será adicionado depois
+
+                // Verifica se os dados essenciais existem
+                const itemId = item.id || '';
+                const itemVideoLink = item.videolink || ''; // Corrigido para 'videolink' como no seu JSON
+                const itemTitle = item.titulo || 'Título Indisponível';
+                const itemPoster = item.poster || ''; // Link do pôster
+                const itemAno = item.ano || '';
+
+                if (!itemId || !itemVideoLink) {
+                    console.warn("Item inválido no lista.json, faltando id ou videolink:", item);
+                    cardLink.href = "#"; // Link inválido para indicar problema
+                    cardLink.innerHTML = `<div class="movie-info"><h3>ERRO</h3><p>Dados inválidos</p></div>`;
+                    return cardLink; // Retorna um card de erro
+                }
+
+                let playerLink = `player.html?id=${itemId}&src=${encodeURIComponent(itemVideoLink)}&title=${encodeURIComponent(itemTitle)}`;
                 if (savedTime > 0) playerLink += `&time=${savedTime}`;
                 cardLink.href = playerLink;
+
                 cardLink.innerHTML = `
-                    <img src="${item.poster}" alt="Pôster de ${item.titulo}">
-                    <div class="movie-info"><h3>${item.titulo}</h3><p>${item.ano}</p></div>
-                    ${savedTime > 0 ? '<div class="progress-bar"><div class="progress-bar-inner" style="width: 50%;"></div></div>' : ''}`;
+                    <img src="${itemPoster}" alt="Pôster de ${itemTitle}" onerror="this.src='fallback_poster.png'; this.alt='Erro ao carregar pôster';"> <div class="movie-info"><h3>${itemTitle}</h3><p>${itemAno}</p></div>
+                    ${savedTime > 0 ? '<div class="progress-bar"><div class="progress-bar-inner" style="width: 50%;"></div></div>' : ''}`; // Barra simples
                 return cardLink;
             }
 
+            // --- FUNÇÃO CONTINUAR ASSISTINDO ---
             function createContinueWatchingSection() {
+                const continueWatchingItems = [];
+                try {
+                    for (let i = 0; i < localStorage.length; i++) {
+                        const key = localStorage.key(i);
+                        if (key && key.startsWith('progress_')) {
+                            const itemId = key.replace('progress_', '');
+                            const savedTime = parseFloat(localStorage.getItem(key));
+                            // Encontra o item correspondente na lista completa (allItems)
+                            const itemData = allItems.find(item => item && item.id === itemId);
+                            if (itemData && savedTime > 1) { // Só adiciona se tiver mais de 1 segundo salvo
+                                continueWatchingItems.push({ ...itemData, savedTime });
+                            } else if (itemData && savedTime <= 1) {
+                                // Limpa progresso inválido/muito curto
+                                localStorage.removeItem(key);
+                            }
+                        }
+                    }
+                } catch (e) {
+                     console.error("Erro ao ler localStorage para Continuar Assistindo:", e);
+                }
+
+
+                if (continueWatchingItems.length > 0) {
+                     console.log(`Home: Encontrados ${continueWatchingItems.length} itens para Continuar Assistindo.`);
+                    const section = document.createElement('section');
+                    section.className = 'movie-section continue-watching';
+                    const title = document.createElement('h2');
+                    title.textContent = 'Continuar Assistindo';
+                    section.appendChild(title);
+                    const grid = document.createElement('div');
+                    grid.className = 'movie-grid';
+                    continueWatchingItems.forEach(item => {
+                        const cardLink = createMovieCard(item, item.savedTime);
+                        cardLink.classList.add('focusable'); // Adiciona focusable aqui também
+                        grid.appendChild(cardLink);
+                    });
+                    section.appendChild(grid);
+                    catalogMain.prepend(section); // Adiciona no início
+                } else {
+                     console.log("Home: Nenhum item encontrado para Continuar Assistindo.");
+                }
+            }
+
+            // --- FUNÇÃO DE NAVEGAÇÃO ---
+            function setupNavigation() {
+                // Seleciona cards E o botão Sair
+                focusableElements = Array.from(document.querySelectorAll('.focusable'));
+                if (focusableElements.length === 0) {
+                     console.warn("Home: Nenhum elemento focável encontrado após carregar catálogo.");
+                    return;
+                }
+                const logoutButtonIndex = focusableElements.findIndex(el => el.id === 'logout-button');
+                currentFocusIndex = 0; // Reseta sempre que a navegação é reconfigurada
+
+                console.log(`Home: Configurando navegação com ${focusableElements.length} elementos focáveis.`);
+
+                const setFocus = (index) => {
+                    if (index < 0 || index >= focusableElements.length) {
+                         console.warn(`Home: Tentativa de focar índice inválido: ${index}`);
+                         return;
+                    }
+                    focusableElements[currentFocusIndex].classList.remove('focused');
+                    currentFocusIndex = index;
+                    const currentElement = focusableElements[currentFocusIndex];
+                    currentElement.classList.add('focused');
+
+                    // Tenta focar o elemento real para acessibilidade e teclado
+                    if (currentElement.focus) {
+                        currentElement.focus();
+                    }
+
+                    // Rolagem apenas para cards de filme/série
+                    if (currentElement.classList.contains('movie-card')) {
+                        currentElement.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'nearest' });
+                    }
+                     // console.log(`Home: Foco movido para índice ${currentFocusIndex}`, currentElement);
+                };
+
+                // Adiciona listener para cliques/toques (para foco visual apenas nos cards)
+                focusableElements.forEach((element, index) => {
+                    if (element.classList.contains('movie-card')) {
+                        element.addEventListener('click', (event) => {
+                            // Não previne default, deixa o link navegar
+                            setFocus(index); // Apenas atualiza o foco visual
+                             console.log(`Home: Card ${index} clicado.`);
+                        });
+                    }
+                });
+
+                // Listener para Teclado/Controle Remoto
+                // Remove listener antigo para evitar duplicação se setupNavigation for chamada de novo
+                document.removeEventListener('keydown', handleKeyDown);
+                document.addEventListener('keydown', handleKeyDown);
+
+                 // Define o foco inicial visualmente
+                if (focusableElements.length > 0) {
+                     setFocus(0);
+                      // Garante visibilidade inicial do primeiro elemento
+                     if(focusableElements[0].scrollIntoView) {
+                         focusableElements[0].scrollIntoView({ behavior: 'auto', block: 'nearest', inline: 'nearest' });
+                     }
+                      console.log("Home: Foco inicial definido no índice 0.");
+                }
+
+            } // Fim da função setupNavigation
+
+            // Handler separado para keydown para poder remover/adicionar
+            function handleKeyDown(event) {
+                 // Só executa se houver elementos focáveis
+                if (focusableElements.length === 0) return;
+
+                event.preventDefault(); // Previne comportamento padrão (rolagem, etc.)
+                let nextFocusIndex = currentFocusIndex;
+                const currentElement = focusableElements[currentFocusIndex];
+
+                // Navegação dentro da grade
+                if (currentElement.classList.contains('movie-card')) {
+                    const grid = currentElement.closest('.movie-grid');
+                    if (grid) {
+                        const gridStyle = window.getComputedStyle(grid);
+                        // Tenta obter colunas, fallback para 1 se der erro
+                        let gridColumnCount = 1;
+                        try {
+                           gridColumnCount = gridStyle.getPropertyValue('grid-template-columns').split(' ').length;
+                        } catch(e) { console.warn("Não foi possível calcular colunas da grade."); }
+
+                        const cardsInGrid = Array.from(grid.querySelectorAll('.movie-card.focusable'));
+                        const cardIndexInGrid = cardsInGrid.indexOf(currentElement); // Posição dentro dos cards da grade atual
+
+                        switch (event.key) {
+                            case 'ArrowRight':
+                                // Tenta ir para o próximo card NA MESMA GRADE
+                                if (cardIndexInGrid < cardsInGrid.length - 1) {
+                                     const globalIndexOfNext = focusableElements.indexOf(cardsInGrid[cardIndexInGrid + 1]);
+                                     if (globalIndexOfNext !== -1) nextFocusIndex = globalIndexOfNext;
+                                } else { // Se for o último da grade, tenta ir para o botão Sair
+                                     const logoutButtonIndex = focusableElements.findIndex(el => el.id === 'logout-button');
+                                     if(logoutButtonIndex !== -1) nextFocusIndex = logoutButtonIndex;
+                                }
+                                break;
+                            case 'ArrowLeft':
+                                // Tenta ir para o card anterior NA MESMA GRADE
+                                 if (cardIndexInGrid > 0) {
+                                      const globalIndexOfPrev = focusableElements.indexOf(cardsInGrid[cardIndexInGrid - 1]);
+                                      if (globalIndexOfPrev !== -1) nextFocusIndex = globalIndexOfPrev;
+                                 }
+                                break;
+                            case 'ArrowDown':
+                                // Tenta pular para a linha de baixo (considerando o índice global)
+                                let downIndex = currentFocusIndex + gridColumnCount;
+                                // Ajusta se pular para fora dos cards
+                                if(downIndex >= focusableElements.length || !focusableElements[downIndex].classList.contains('movie-card')){
+                                     // Tenta ir para o próximo card sequencialmente como fallback
+                                     for(let i = currentFocusIndex + 1; i < focusableElements.length; i++){
+                                        if(focusableElements[i].classList.contains('movie-card')){
+                                            downIndex = i;
+                                            break;
+                                        }
+                                     }
+                                     // Se ainda não achou, pode ir para o botão Sair
+                                     const logoutButtonIndex = focusableElements.findIndex(el             function createContinueWatchingSection() {
                 const continueWatchingItems = [];
                 for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
@@ -270,3 +496,4 @@
     <script src="js/app.js"></script>
 </body>
 </html>
+
