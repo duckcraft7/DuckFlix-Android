@@ -10,7 +10,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-    # --- 1. CONFIGURAÇÃO DO AMBIENTE ---
     - name: Checkout repository
       uses: actions/checkout@v4
 
@@ -28,38 +27,36 @@ jobs:
     - name: Install Cordova globally
       run: npm install -g cordova
 
-    # --- 2. BUILD DO SEU APLICATIVO WEB (React/Vue/Angular/etc.) ---
-    # Este passo estava faltando. Ele gera os arquivos .js que você mencionou.
-    - name: Install Web App Dependencies
-      run: npm install # Instala dependências do package.json na raiz
-
-    - name: Build Web App
-      run: npm run build # <-- AJUSTE AQUI se seu comando for outro (ex: 'vite build')
-
-    - name: List Web App Build output # <-- DEBUG
-      # Este comando mostra os arquivos que 'npm run build' criou.
-      # Se a pasta não for 'dist', ajuste o nome no passo de 'mv' abaixo.
-      run: ls -la dist/ # <-- AJUSTE AQUI se a pasta for 'build' ou outra
-
-    # --- 3. PREPARAÇÃO E BUILD DO CORDOVA ---
     - name: Create Cordova Project
       run: cordova create cordova_project com.duckcraft7.duckflix DuckFlix
 
-    # --- 4. CÓPIA CORRETA DOS ARQUIVOS ---
-    - name: Replace Cordova 'www' with Web App build
+    # (Removi 'run: cd cordova_project' pois não funciona entre steps)
+
+    - name: Copy Web Files into Cordova www folder
+      # Copia tudo da raiz para 'www', exceto a própria pasta do cordova
       run: |
-        # Remove a pasta 'www' padrão que o 'cordova create' gerou
-        rm -r cordova_project/www
+        shopt -s extglob # Enable extended globbing
+        cp -r !(cordova_project) cordova_project/www/
+
+    # --- CORREÇÃO (O PASSO QUE VOCÊ QUERIA) ---
+    - name: Mover arquivos .js para a pasta /js
+      # Roda os comandos de dentro da pasta www
+      working-directory: ./cordova_project/www 
+      run: |
+        echo "Movendo arquivos .js para a subpasta /js..."
         
-        # Move a pasta do seu build ('dist') para ser a nova pasta 'www'
-        mv dist cordova_project/www # <-- AJUSTE 'dist' se seu build gerou 'build'
+        # Cria a pasta 'js' DENTRO de 'www'
+        mkdir -p js
+        
+        # Move todos os .js da raiz de 'www' para 'www/js/'
+        # '|| true' evita erro se nenhum .js for encontrado
+        # IMPORTANTE: Isso não move .js de outras pastas (ex: /assets)
+        mv *.js js/ || true 
+        
+        echo "Conteúdo final da pasta /js:"
+        ls -l js/
 
-    - name: List files in final 'www' # <-- DEBUG
-      working-directory: ./cordova_project/www
-      run: ls -la
-
-    # O passo 'run: cd cordova_project' foi removido por ser desnecessário.
-    # Usar 'working-directory' (como abaixo) é a forma correta.
+    # --- FIM DA CORREÇÃO ---
 
     - name: Add Android platform
       working-directory: ./cordova_project
@@ -69,7 +66,6 @@ jobs:
       working-directory: ./cordova_project
       run: cordova build android --debug
 
-    # --- 5. UPLOAD DO APK GERADO ---
     - name: Upload Debug APK Artifact
       uses: actions/upload-artifact@v4
       with:
