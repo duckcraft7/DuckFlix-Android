@@ -3,7 +3,7 @@ name: Build Android APK (Cordova DuckFlix)
 on:
   push:
     branches:
-      - main  # 🔑 Dispara a construção sempre que houver push na branch principal
+      - main  # Dispara a construção sempre que houver push na branch 'main'
   pull_request:
     branches:
       - main
@@ -34,16 +34,18 @@ jobs:
 
       - name: 5. Criar Projeto Cordova
         run: |
-          # 🔑 CRÍTICO: Cria o projeto Cordova no diretório raiz do seu repositório
-          # O nome do app e o ID (reverse domain) são importantes.
+          # CRÍTICO: Cria o projeto Cordova no diretório raiz. Seu HTML/CSS/JS deve estar em uma pasta 'www'.
           cordova create . com.duckcraft7.duckflix DuckFlix
           
-          # Remove a pasta www criada pelo Cordova (usaremos a nossa)
+          # Remove a pasta www criada pelo Cordova
           rm -rf www
+          
+          # Renomeia sua pasta www/ (com seu código) para dentro da estrutura.
+          mv www ./www_temp  
+          mv www_temp .
 
       - name: 6. Mover Arquivos para a Estrutura Cordova
-        # Move o seu código HTML/CSS/JS (que já está na pasta 'www')
-        # para a nova estrutura criada.
+        # Assumindo que seu código está na pasta www.
         run: |
           mv www/* ./www/
           
@@ -52,18 +54,15 @@ jobs:
           cordova platform add android@12
 
       - name: 8. Construir o Aplicativo Android (APK)
-        # O flag --release é opcional, mas gera um pacote mais otimizado.
         run: cordova build android --release 
         
+      # 🔑 CORREÇÃO DO ERRO YAML: Adicionamos um comando RUN para o Step 9
       - name: 9. Assinar o APK (Opcional, mas necessário para loja)
-        # ⚠️ Nota: Esta etapa é complexa e precisa de chaves seguras (keystore).
-        # Por enquanto, focaremos apenas no build do APK sem assinatura.
-
+        run: echo "Ignorando etapa de assinatura (keystore)."
+        
       - name: 10. Publicar o APK como Artifact
-        # O APK final estará em platforms/android/app/build/outputs/apk/release/
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-
