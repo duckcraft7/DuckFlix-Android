@@ -39,23 +39,29 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Adicionar Plataforma Android
+      - name: 6. Limpar Cache do Cordova (CRÍTICO)
+        # Limpa o cache para evitar falhas na instalação da plataforma.
+        run: cordova cache clean
+          
+      - name: 7. Adicionar Plataforma Android (Final)
+        # Este passo agora deve rodar de forma confiável.
         run: cordova platform add android@10.1.2
 
-      - name: 7. Fix Gradle Version
+      - name: 8. CORREÇÃO CRÍTICA: Forçar Gradle 7.6 (Compatível)
+        # Sobrescreve o arquivo wrapper que agora deve existir.
         run: |
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
-      - name: 8. Construir o Aplicativo Android (APK)
+      - name: 9. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
-      - name: 9. Assinar o APK (Opcional)
+      - name: 10. Assinar o APK (Opcional)
         run: echo "Ignorando etapa de assinatura (keystore)."
         
-      - name: 10. Publicar o APK como Artifact
+      - name: 11. Publicar o APK como Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-          
+
