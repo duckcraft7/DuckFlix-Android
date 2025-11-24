@@ -39,12 +39,10 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      # ⬇️ CORREÇÃO DE SINTAXE YAML (Linhas 47-49)
       - name: 6. Adicionar Plataforma Android
-        # CRÍTICO: Comando em linha única para evitar erro de indentação.
         run: cordova platform add android@10.1.2
 
-      - name: 7. CORREÇÃO FINAL CRÍTICA: Forçar Gradle 7.6 (Compatível)
+      - name: 7. Fix Gradle Version
         run: |
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
