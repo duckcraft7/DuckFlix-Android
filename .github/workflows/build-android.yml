@@ -39,24 +39,24 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Clean Cordova Cache
-        run: cordova cache clean
+      # ⚠️ PASSO INVÁLIDO REMOVIDO ⚠️
           
-      - name: 7. Add Android Platform
+      - name: 6. Add Android Platform
+        # CRÍTICO: Usa a versão 10.1.2 para compatibilidade com o Gradle.
         run: cordova platform add android@10.1.2
 
-      - name: 8. Fix Gradle Version
-        # CORRIGIDO: Este era o passo com o nome complexo. O comando injeta o Gradle 7.6.
+      - name: 7. Fix Gradle Version
+        # CORREÇÃO CRÍTICA: Sobrescreve o arquivo wrapper para usar o Gradle 7.6.
         run: |
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
-      - name: 9. Build APK
+      - name: 8. Build APK
         run: cordova build android --release 
         
-      - name: 10. Skip Signing
+      - name: 9. Skip Signing
         run: echo "Skipping signing step."
         
-      - name: 11. Publish Artifact
+      - name: 10. Publish Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
