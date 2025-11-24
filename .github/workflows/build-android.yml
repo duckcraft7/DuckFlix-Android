@@ -22,8 +22,7 @@ jobs:
           node-version: '20'
 
       - name: 3. Instalar Cordova
-        run: |
-          npm install -g cordova
+        run: npm install -g cordova
 
       - name: 4. Instalar Ferramentas Android e SDK
         uses: actions/setup-java@v4
@@ -31,8 +30,8 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      # ⬇️ Início do Step 5
       - name: 5. Criar Projeto Cordova
+        # Comando multi-linha mantido, pois é complexo.
         run: |
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
           cp temp_cordova/config.xml .
@@ -41,14 +40,13 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      # ⬇️ INÍCIO DO STEP 6 (DEVE ESTAR PERFEITAMENTE ALINHADO COM O STEP 5)
       - name: 6. Adicionar Plataforma Android
-        run: |
-          cordova platform add android@10.1.2
+        # CORREÇÃO CRÍTICA DA LINHA 49: Comando em uma única linha.
+        run: cordova platform add android@10.1.2
 
       - name: 7. CORREÇÃO FINAL CRÍTICA: Forçar Gradle 7.6 (Compatível)
-        run: |
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+        # Comando em uma única linha.
+        run: echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
       - name: 8. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
