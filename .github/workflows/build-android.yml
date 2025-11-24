@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04 # Mantido o ambiente estável
+    runs-on: ubuntu-latest # Mantido o ambiente estável
 
     steps:
       - name: 1. Checkout Code
