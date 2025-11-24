@@ -10,13 +10,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Mantido o runner mais disponível
 
     steps:
       - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Node.js
+      - name: 2. Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -24,7 +24,7 @@ jobs:
       - name: 3. Instalar Cordova Global
         run: npm install -g cordova
 
-      - name: 4. Instalar Ferramentas Android e SDK
+      - name: 4. Setup Android SDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -43,16 +43,16 @@ jobs:
         run: cordova platform add android@10.1.2
 
       - name: 7. CORREÇÃO CRÍTICA Injetar Dependência Groovy XML
-        # CRÍTICO: Injeta a dependência dentro do bloco 'buildscript' usando uma regex segura.
+        # Solução final para o erro XmlParser: injeta a dependência no bloco buildscript.
         run: |
           BUILD_GRADLE_FILE="platforms/android/build.gradle"
           DEPENDENCY_LINE='        classpath "org.codehaus.groovy:groovy-xml:3.0.17"'
           
-          # Injeta a linha da dependência DENTRO do bloco buildscript { dependencies { ... } }
-          sed -i "/buildscript {/,/}/ s/dependencies {/dependencies {\n$DEPENDENCY_LINE/" $BUILD_GRADLE_FILE
+          # Injeta a dependência no bloco 'dependencies' do 'buildscript'
+          sed -i '/buildscript {/,/}/ s/dependencies {/dependencies {\n'"$DEPENDENCY_LINE"''/g' "$BUILD_GRADLE_FILE"
 
       - name: 8. Construir o Aplicativo Android (APK)
-        run: cordova build android 
+        run: cordova build android --release 
         
       - name: 9. Skip Signing
         run: echo "Skipping signing step."
