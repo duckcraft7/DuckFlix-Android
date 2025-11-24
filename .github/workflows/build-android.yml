@@ -3,14 +3,14 @@ name: Build Android APK (Cordova DuckFlix)
 on:
   push:
     branches:
-      - main
+      - main  # Dispara a construção quando há push na branch principal
   pull_request:
     branches:
       - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Ambiente Linux com as ferramentas de build necessárias
 
     steps:
       - name: 1. Checkout do Código
@@ -21,7 +21,8 @@ jobs:
         with:
           node-version: '20'
 
-      - name: 3. Instalar Cordova
+      - name: 3. Instalar Cordova (Corrigido o erro do package.json)
+        # Instala o Cordova globalmente sem buscar package.json.
         run: |
           npm install -g cordova
 
@@ -31,30 +32,20 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 5. Criar Projeto Cordova (Corrigido para evitar 'Path already exists')
+      - name: 5. Criar Projeto Cordova (Corrigido o erro 'Path already exists')
+        # Cria o projeto em pasta temp, copia o config.xml e move sua pasta 'www' para dentro.
         run: |
-          # 1. Cria o projeto em uma pasta temporária chamada 'temp_cordova'
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
-          
-          # 2. Copia o arquivo de configuração essencial (config.xml) para a raiz do projeto
           cp temp_cordova/config.xml .
-          
-          # 3. Remove a pasta www padrão da pasta temporária
           rm -rf temp_cordova/www
-          
-          # 4. Move a sua pasta www (com o código DuckFlix) para dentro da estrutura temporária
           mv www temp_cordova/www
-          
-          # 5. Move todos os arquivos e pastas essenciais de volta para a raiz
           mv temp_cordova/* .
-          
-          # 6. Limpa a pasta temporária
           rm -rf temp_cordova
           
-      - name: 6. Adicionar Plataforma Android
-        # Agora que a estrutura está montada, podemos adicionar a plataforma
+      - name: 6. Adicionar Plataforma Android (Corrigido o erro XmlParser)
+        # CRÍTICO: Usa a versão estável 11.0.0 para evitar problemas de compatibilidade com o Gradle 9.x.
         run: |
-          cordova platform add android@12
+          cordova platform add android@11.0.0
 
       - name: 7. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
