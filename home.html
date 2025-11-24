@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DuckFlix - Catálogo</title>
+    <link rel="stylesheet" href="style.css"> 
+    <style>
+        /* Estilos essenciais para o controle remoto e logout */
+        .header-actions { position: absolute; top: 20px; right: 20px; z-index: 100; }
+        .logout-button { background-color: #CC0000; color: white; padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 1em; font-weight: bold; transition: background-color 0.3s; }
+        /* FOCO PARA O CONTROLE REMOTO */
+        .movie-card.focused { transform: scale(1.08); border: 4px solid #FFD700; box-shadow: 0 0 20px rgba(255, 215, 0, 0.7); z-index: 10; }
+    </style>
+</head>
+<body>
+
+    <header class="main-header">
+        <h1>DuckFlix</h1>
+        <div class="header-actions">
+            <button class="logout-button" onclick="logout()">Sair da conta</button>
+        </div>
+    </header>
+
+    <main id="catalog-container">
+        </main>
+
+    <footer class="main-footer">
+        <p>&copy; 2025 DuckFlix. Feito com ❤️ para os amantes de cinema.</p>
+    </footer>
+
+    <script>
+        // =========================================================
+        // === CONFIGURAÇÕES E SESSÃO ===
+        // =========================================================
+        const AUTH_KEY = 'duckflix_auth_pin';
+        const LOGIN_PAGE = 'index.html';
+        
+        // URL da sua lista hospedada no Vercel
+        const listaUrl = 'https://duckflix-lista.vercel.app/lista.json'; 
+
+
+        // 1. FUNÇÃO DE LOGOUT
+        function logout() {
+            localStorage.removeItem(AUTH_KEY);
+            window.location.href = LOGIN_PAGE;
+        }
+
+        // 2. VERIFICAÇÃO DE SESSÃO
+        function checkSession() {
+            if (!localStorage.getItem(AUTH_KEY)) {
+                window.location.href = LOGIN_PAGE; 
+                return false;
+            }
+            return true;
+        }
+
+        // =========================================================
+        // === 3. CARREGAMENTO DO CATÁLOGO ===
+        // =========================================================
+        function carregarCatalogo() {
+            fetch(listaUrl)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Falha HTTP. Verifique o CORS no Vercel (vercel.json).');
+                    }
+                    return response.json(); 
+                })
+                .then(data => {
+                    const catalogContainer = document.getElementById('catalog-container');
+                    
+                    if (!catalogContainer) {
+                        throw new Error("Erro: Elemento 'catalog-container' não encontrado.");
+                    }
+
+                    catalogContainer.innerHTML = ''; 
+
+                    data.categorias.forEach(categoria => {
+                        const section = document.createElement('section');
+                        section.className = 'movie-section';
+                        const title = document.createElement('h2');
+                        title.textContent = categoria.titulo;
+                        section.appendChild(title);
+
+                        const grid = document.createElement('div');
+                        grid.className = 'movie-grid';
+                        
+                        categoria.items.forEach(item => {
+                            const cardLink = document.createElement('a');
+                            cardLink.className = 'movie-card';
+                            
+                            // 🔑 MUDANÇA CRÍTICA: Passagem de dados por URL
+                            const encodedTitle = encodeURIComponent(item.titulo);
+                            const encodedVideoLink = encodeURIComponent(item.videoLink);
+                            
+                            cardLink.href = `player.html?title=${encodedTitle}&video=${encodedVideoLink}`; 
+                            cardLink.target = '_self';
+
+                            cardLink.innerHTML = `
+                                <img src="${item.poster}" alt="Pôster de ${item.titulo}">
+                                <div class="movie-info">
+                                    <h3>${item.titulo}</h3>
+                                    <p>${item.ano}</p>
+                                </div>
+                            `;
+                            grid.appendChild(cardLink);
+                        });
+
+                        section.appendChild(grid);
+                        catalogContainer.appendChild(section);
+                    });
+
+                    setupNavigation(); // Ativa a navegação por controle remoto
+                })
+                .catch(error => {
+                    console.error('Erro de carregamento:', error);
+                    document.getElementById('catalog-container').innerHTML = `<h2>Falha ao carregar catálogo: ${error.message}</h2>`;
+                });
+        }
+        
+        // =========================================================
+        // === 4. NAVEGAÇÃO POR CONTROLE REMOTO (LG TV) ===
+        // =========================================================
+        function setupNavigation() {
+            const movieCards = document.querySelectorAll('.movie-card');
+            if (movieCards.length === 0) return;
+            
+            let currentFocusIndex = 0;
+            let gridColumnCount = 5; 
+            
+            try {
+                 const gridStyle = window.getComputedStyle(document.querySelector('.movie-grid'));
+                 const columns = gridStyle.getPropertyValue('grid-template-columns');
+                 if (columns) {
+                    gridColumnCount = columns.split(' ').length;
+                 }
+            } catch (e) { /* Assume 5 colunas */ }
+
+            const setFocus = (index) => {
+                if (movieCards[currentFocusIndex]) {
+                    movieCards[currentFocusIndex].classList.remove('focused');
+                }
+                currentFocusIndex = Math.max(0, Math.min(index, movieCards.length - 1));
+                movieCards[currentFocusIndex].classList.add('focused');
+                movieCards[currentFocusIndex].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            };
+
+            document.addEventListener('keydown', (event) => {
+                event.preventDefault();
+                
+                let nextIndex = currentFocusIndex;
+                
+                switch (event.key) {
+                    case 'ArrowRight': nextIndex = currentFocusIndex + 1; break;
+                    case 'ArrowLeft': nextIndex = currentFocusIndex - 1; break;
+                    case 'ArrowDown': nextIndex = currentFocusIndex + gridColumnCount; break;
+                    case 'ArrowUp': nextIndex = currentFocusIndex - gridColumnCount; break;
+                    case 'Enter': movieCards[currentFocusIndex].click(); return;
+                }
+                
+                if (nextIndex >= 0 && nextIndex < movieCards.length) {
+                    setFocus(nextIndex);
+                }
+            });
+            setFocus(0);
+        }
+
+        // =========================================================
+        // === INICIALIZAÇÃO DO APP ===
+        // =========================================================
+        document.addEventListener('DOMContentLoaded', () => {
+            if (checkSession()) {
+                carregarCatalogo(); 
+            }
+        });
+    </script>
+</body>
+</html>
+
+

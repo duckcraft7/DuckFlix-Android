@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Assistindo | DuckFlix</title>
+    <link rel="stylesheet" href="style.css"> 
+    <style>
+        /* Estilos básicos para o player */
+        body { background-color: #000; color: white; margin: 0; padding: 0; display: flex; flex-direction: column; align-items: center; }
+        .player-container { width: 90%; max-width: 1280px; margin-top: 50px; }
+        h1 { color: #FFD700; margin-bottom: 10px; }
+        .video-player { width: 100%; height: auto; aspect-ratio: 16 / 9; background-color: #000; border: none; }
+    </style>
+</head>
+<body>
+
+    <div class="player-container">
+        <h1 id="movie-title">Carregando filme...</h1>
+        
+        <video id="video-tag" class="video-player" controls autoplay>
+            Seu navegador não suporta a tag de vídeo.
+        </video>
+
+        <p id="loading-message" style="text-align: center; margin-top: 20px;">
+            Iniciando o streaming seguro...
+        </p>
+    </div>
+
+    <script>
+        // =========================================================
+        // === CONFIGURAÇÕES E SESSÃO ===
+        // =========================================================
+        const AUTH_KEY = 'duckflix_auth_pin';
+        const LOGIN_PAGE = 'index.html';
+
+        // 1. Função para extrair parâmetros da URL
+        function getQueryParams() {
+            const params = {};
+            const search = window.location.search.substring(1);
+            const parts = search.split('&');
+            
+            parts.forEach(part => {
+                const [key, value] = part.split('=');
+                // Decodifica os valores que foram passados como URI
+                params[key] = decodeURIComponent(value || '');
+            });
+            return params;
+        }
+
+        // 2. Função principal que carrega o player
+        function loadPlayer() {
+            const params = getQueryParams();
+            const movieTitle = params.title;
+            const videoLink = params.video; // O link do MP4 do Archive.org
+
+            const titleElement = document.getElementById('movie-title');
+            const videoElement = document.getElementById('video-tag');
+            const messageElement = document.getElementById('loading-message');
+
+            // 🚨 Segurança: Checagem da sessão 
+            if (!localStorage.getItem(AUTH_KEY)) {
+                window.location.href = LOGIN_PAGE;
+                return;
+            }
+
+            if (!movieTitle || !videoLink) {
+                titleElement.textContent = 'Falha Crítica no Carregamento.';
+                messageElement.textContent = 'Detalhes do filme ausentes na URL. Retorne ao catálogo.';
+                return;
+            }
+
+            try {
+                // Injeta os dados na página, sem necessidade de FETCH
+                titleElement.textContent = movieTitle;
+                messageElement.style.display = 'none'; 
+                
+                // Configura o elemento <video>
+                videoElement.src = videoLink; 
+                videoElement.load(); 
+                
+                videoElement.play().catch(e => {
+                    console.log("Auto-play bloqueado pelo navegador.");
+                });
+
+            } catch (error) {
+                console.error('Erro ao configurar o player:', error);
+                titleElement.textContent = 'Erro de Configuração do Player.';
+                messageElement.textContent = `Ocorreu um erro interno.`;
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', loadPlayer);
+    </script>
+</body>
+</html>
