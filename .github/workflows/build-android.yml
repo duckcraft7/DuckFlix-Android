@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Mantemos o runner mais disponível
+    runs-on: ubuntu-22.04 # Mantemos o runner mais disponível
 
     steps:
       - name: 1. Checkout Code
