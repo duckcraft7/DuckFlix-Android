@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # Mantido o ambiente estável
+    runs-on: ubuntu-latest # ✅ Volta para o ambiente mais disponível
 
     steps:
       - name: 1. Checkout Code
@@ -39,21 +39,19 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Add Android Platform
+      - name: 6. Add Android Platform (Versão Estável)
+        # Mantém a versão 10.1.2 para evitar o erro XmlParser.
         run: cordova platform add android@10.1.2
 
-      - name: 7. Fix Gradle Version (Robusto)
-        # CRÍTICO: Usa 'printf' e aspas simples para escrever o arquivo, ignorando erros de shell.
-        run: |
-          printf 'distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip' > platforms/android/gradle/wrapper/gradle-wrapper.properties
+      # ⚠️ Step 7 (Forçar Gradle) FOI REMOVIDO ⚠️
           
-      - name: 8. Construir o Aplicativo Android (APK)
+      - name: 7. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
-      - name: 9. Skip Signing
+      - name: 8. Skip Signing
         run: echo "Skipping signing step."
         
-      - name: 10. Publish Artifact
+      - name: 9. Publish Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
