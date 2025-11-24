@@ -10,13 +10,13 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Mantemos o runner mais disponível
 
     steps:
       - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Node.js
+      - name: 2. Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
@@ -24,7 +24,7 @@ jobs:
       - name: 3. Instalar Cordova Global
         run: npm install -g cordova
 
-      - name: 4. Instalar Ferramentas Android e SDK
+      - name: 4. Setup Android SDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -42,11 +42,12 @@ jobs:
       - name: 6. Add Android Platform
         run: cordova platform add android@10.1.2
 
-      - name: 7. Injetar Dependência (Local Correto)
-        # CRÍTICO: Injeta a dependência dentro do bloco 'buildscript { dependencies {' no build.gradle, garantindo que seja lido a tempo.
+      - name: 7. CORREÇÃO CRÍTICA Patch Direto do Arquivo Groovy
+        # CRÍTICO: Injeta o import necessário no topo do arquivo que está falhando (CordovaLib/cordova.gradle).
         run: |
-          sed -i '/buildscript {/!b;n;/dependencies {/a \        classpath "org.codehaus.groovy:groovy-xml:3.0.17"' platforms/android/build.gradle
-
+          # Use 'printf' para injetar a linha 'import groovy.util.XmlParser' no topo do arquivo.
+          printf 'import groovy.util.XmlParser\n%s' "$(cat platforms/android/CordovaLib/cordova.gradle)" > platforms/android/CordovaLib/cordova.gradle
+          
       - name: 8. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
@@ -59,4 +60,4 @@ jobs:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-
+          
