@@ -22,7 +22,8 @@ jobs:
           node-version: '20'
 
       - name: 3. Instalar Cordova
-        run: npm install -g cordova
+        run: |
+          npm install -g cordova
 
       - name: 4. Instalar Ferramentas Android e SDK
         uses: actions/setup-java@v4
@@ -31,7 +32,6 @@ jobs:
           java-version: '17'
 
       - name: 5. Criar Projeto Cordova
-        # Comando multi-linha mantido, pois é complexo.
         run: |
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
           cp temp_cordova/config.xml .
@@ -40,13 +40,13 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
+      # A sintaxe a seguir é a mais limpa e deve resolver os erros L47/L49
       - name: 6. Adicionar Plataforma Android
-        # CORREÇÃO CRÍTICA DA LINHA 49: Comando em uma única linha.
         run: cordova platform add android@10.1.2
 
       - name: 7. CORREÇÃO FINAL CRÍTICA: Forçar Gradle 7.6 (Compatível)
-        # Comando em uma única linha.
-        run: echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+        run: |
+          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
       - name: 8. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
