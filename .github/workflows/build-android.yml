@@ -3,7 +3,7 @@ name: Build Android APK (Cordova DuckFlix)
 on:
   push:
     branches:
-      - main  # Dispara a construção quando há push na branch principal
+      - main
   pull_request:
     branches:
       - main
@@ -41,13 +41,10 @@ jobs:
           rm -rf temp_cordova
           
       - name: 6. Adicionar Plataforma Android
-        # Versão estável do Cordova Android.
         run: |
           cordova platform add android@10.1.2
 
       - name: 7. CORREÇÃO FINAL CRÍTICA: Forçar Gradle 7.6 (Compatível)
-        # Sobrescreve o arquivo wrapper para usar a versão 7.6 do Gradle,
-        # que reconhece o XmlParser e evita o erro de compilação.
         run: |
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
@@ -63,4 +60,4 @@ jobs:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-
+          
