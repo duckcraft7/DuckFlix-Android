@@ -10,20 +10,19 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest # Mantemos o runner mais disponível
 
     steps:
-      - name: 1. Checkout do Código
+      - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Node.js
+      - name: 2. Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 3. Instalar Cordova
-        run: |
-          npm install -g cordova
+      - name: 3. Instalar Cordova Global
+        run: npm install -g cordova
 
       - name: 4. Instalar Ferramentas Android e SDK
         uses: actions/setup-java@v4
@@ -41,26 +40,21 @@ jobs:
           rm -rf temp_cordova
           
       - name: 6. Adicionar Plataforma Android
-        run: |
-          cordova platform add android@10.1.2
+        run: cordova platform add android@10.1.2
 
-      - name: 7. CORREÇÃO FINAL CRÍTICA Injetar Dependência Groovy XML (Corrigido o Shell)
-        run: |
-          BUILD_GRADLE_FILE="platforms/android/build.gradle"
-          DEPENDENCY_LINE='        classpath "org.codehaus.groovy:groovy-xml:3.0.17"'
+      # ⚠️ Passo 7 removido. O ambiente será testado novamente.
           
-          # 🔑 NOVO COMANDO SED: Sintaxe simplificada para evitar erros de citação
-          sed -i "/buildscript {/,/}/ s/dependencies {/dependencies {\n${DEPENDENCY_LINE}/g" "$BUILD_GRADLE_FILE"
-
-      - name: 8. Construir o Aplicativo Android (APK)
+      - name: 7. Construir o Aplicativo Android (APK)
+        # O build falhará aqui até que o GitHub atualize o Gradle para uma versão mais compatível.
         run: cordova build android --release 
         
-      - name: 9. Assinar o APK (Opcional)
-        run: echo "Ignorando etapa de assinatura (keystore)."
+      - name: 8. Skip Signing
+        run: echo "Skipping signing step."
         
-      - name: 10. Publicar o APK como Artifact
+      - name: 9. Publish Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
+
