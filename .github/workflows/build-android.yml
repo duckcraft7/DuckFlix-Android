@@ -10,28 +10,27 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-20.04 # Mantido o ambiente estável
 
     steps:
-      - name: 1. Checkout do Código
+      - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Node.js
+      - name: 2. Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 3. Instalar Cordova
-        run: |
-          npm install -g cordova
+      - name: 3. Install Cordova Global
+        run: npm install -g cordova
 
-      - name: 4. Instalar Ferramentas Android e SDK
+      - name: 4. Setup Android SDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 5. Criar Projeto Cordova
+      - name: 5. Create Project Structure
         run: |
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
           cp temp_cordova/config.xml .
@@ -40,28 +39,24 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Adicionar Plataforma Android
-        # CRÍTICO: Este passo falhou antes de completar a estrutura.
-        run: |
-          cordova platform add android@10.1.2
+      - name: 6. Add Android Platform
+        run: cordova platform add android@10.1.2
 
-      - name: 7. GARANTIR ESTRUTURA E CORREÇÃO DO GRADLE
-        # 1. Cria o diretório (se não existir)
-        # 2. Escreve o arquivo wrapper (que faltou)
+      - name: 7. Fix Gradle Version (Robusto)
+        # CRÍTICO: Usa 'printf' e aspas simples para escrever o arquivo, ignorando erros de shell.
         run: |
-          mkdir -p platforms/android/gradle/wrapper
-          echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
+          printf 'distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip' > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
       - name: 8. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
-      - name: 9. Assinar o APK (Opcional)
-        run: echo "Ignorando etapa de assinatura (keystore)."
+      - name: 9. Skip Signing
+        run: echo "Skipping signing step."
         
-      - name: 10. Publicar o APK como Artifact
+      - name: 10. Publish Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-
+          
