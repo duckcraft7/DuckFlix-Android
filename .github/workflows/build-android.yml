@@ -1,73 +1,69 @@
-name: Build DuckFlix Android App
+name: Build Android APK (Cordova DuckFlix)
 
 on:
   push:
-    branches: [ "main" ]
-  workflow_dispatch:
+    branches:
+      - main  # 🔑 Dispara a construção sempre que houver push na branch principal
+  pull_request:
+    branches:
+      - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Usamos uma máquina Linux para a construção
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
+      - name: 1. Checkout do Código
+        uses: actions/checkout@v4
 
-    - name: Set up JDK 17
-      uses: actions/setup-java@v4
-      with:
-        distribution: 'temurin'
-        java-version: '17'
+      - name: 2. Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20' # Use uma versão LTS estável
 
-    - name: Set up Node.js
-      uses: actions/setup-node@v4
-      with:
-        node-version: '18'
+      - name: 3. Instalar Cordova e Dependências
+        run: |
+          npm install -g cordova
+          npm install
 
-    - name: Install Cordova globally
-      run: npm install -g cordova
+      - name: 4. Instalar Ferramentas Android e SDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '17'
 
-    - name: Create Cordova Project
-      run: cordova create cordova_project com.duckcraft7.duckflix DuckFlix
+      - name: 5. Criar Projeto Cordova
+        run: |
+          # 🔑 CRÍTICO: Cria o projeto Cordova no diretório raiz do seu repositório
+          # O nome do app e o ID (reverse domain) são importantes.
+          cordova create . com.duckcraft7.duckflix DuckFlix
+          
+          # Remove a pasta www criada pelo Cordova (usaremos a nossa)
+          rm -rf www
 
-    # (Removi 'run: cd cordova_project' pois não funciona entre steps)
+      - name: 6. Mover Arquivos para a Estrutura Cordova
+        # Move o seu código HTML/CSS/JS (que já está na pasta 'www')
+        # para a nova estrutura criada.
+        run: |
+          mv www/* ./www/
+          
+      - name: 7. Adicionar Plataforma Android
+        run: |
+          cordova platform add android@12
 
-    - name: Copy Web Files into Cordova www folder
-      # Copia tudo da raiz para 'www', exceto a própria pasta do cordova
-      run: |
-        shopt -s extglob # Enable extended globbing
-        cp -r !(cordova_project) cordova_project/www/
-
-    # --- CORREÇÃO (O PASSO QUE VOCÊ QUERIA) ---
-    - name: Mover arquivos .js para a pasta /js
-      # Roda os comandos de dentro da pasta www
-      working-directory: ./cordova_project/www 
-      run: |
-        echo "Movendo arquivos .js para a subpasta /js..."
+      - name: 8. Construir o Aplicativo Android (APK)
+        # O flag --release é opcional, mas gera um pacote mais otimizado.
+        run: cordova build android --release 
         
-        # Cria a pasta 'js' DENTRO de 'www'
-        mkdir -p js
-        
-        # Move todos os .js da raiz de 'www' para 'www/js/'
-        # '|| true' evita erro se nenhum .js for encontrado
-        # IMPORTANTE: Isso não move .js de outras pastas (ex: /assets)
-        mv *.js js/ || true 
-        
-        echo "Conteúdo final da pasta /js:"
-        ls -l js/
+      - name: 9. Assinar o APK (Opcional, mas necessário para loja)
+        # ⚠️ Nota: Esta etapa é complexa e precisa de chaves seguras (keystore).
+        # Por enquanto, focaremos apenas no build do APK sem assinatura.
 
-    # --- FIM DA CORREÇÃO ---
+      - name: 10. Publicar o APK como Artifact
+        # O APK final estará em platforms/android/app/build/outputs/apk/release/
+        uses: actions/upload-artifact@v4
+        with:
+          name: duckflix-android-apk
+          path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
+          retention-days: 7
 
-    - name: Add Android platform
-      working-directory: ./cordova_project
-      run: cordova platform add android
-
-    - name: Build Android Debug APK
-      working-directory: ./cordova_project
-      run: cordova build android --debug
-
-    - name: Upload Debug APK Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: duckflix-android-debug-apk
-        path: cordova_project/platforms/android/app/build/outputs/apk/debug/app-debug.apk
