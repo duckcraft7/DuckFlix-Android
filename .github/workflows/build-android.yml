@@ -13,24 +13,24 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: 1. Checkout do Código
+      - name: 1. Checkout Code
         uses: actions/checkout@v4
 
-      - name: 2. Configurar Node.js
+      - name: 2. Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
-      - name: 3. Instalar Cordova
+      - name: 3. Install Cordova Global
         run: npm install -g cordova
 
-      - name: 4. Instalar Ferramentas Android e SDK
+      - name: 4. Setup Android SDK
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 5. Criar Projeto Cordova
+      - name: 5. Create Project Structure
         run: |
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
           cp temp_cordova/config.xml .
@@ -39,26 +39,24 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Limpar Cache do Cordova (CRÍTICO)
-        # Limpa o cache para evitar falhas na instalação da plataforma.
+      - name: 6. Clean Cordova Cache
         run: cordova cache clean
           
-      - name: 7. Adicionar Plataforma Android (Final)
-        # Este passo agora deve rodar de forma confiável.
+      - name: 7. Add Android Platform
         run: cordova platform add android@10.1.2
 
-      - name: 8. CORREÇÃO CRÍTICA: Forçar Gradle 7.6 (Compatível)
-        # Sobrescreve o arquivo wrapper que agora deve existir.
+      - name: 8. Fix Gradle Version
+        # CORRIGIDO: Este era o passo com o nome complexo. O comando injeta o Gradle 7.6.
         run: |
           echo "distributionUrl=https\://services.gradle.org/distributions/gradle-7.6-bin.zip" > platforms/android/gradle/wrapper/gradle-wrapper.properties
           
-      - name: 9. Construir o Aplicativo Android (APK)
+      - name: 9. Build APK
         run: cordova build android --release 
         
-      - name: 10. Assinar o APK (Opcional)
-        run: echo "Ignorando etapa de assinatura (keystore)."
+      - name: 10. Skip Signing
+        run: echo "Skipping signing step."
         
-      - name: 11. Publicar o APK como Artifact
+      - name: 11. Publish Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
