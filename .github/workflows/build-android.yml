@@ -31,6 +31,7 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
+      # ⬇️ Início do Step 5
       - name: 5. Criar Projeto Cordova
         run: |
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
@@ -40,6 +41,7 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
+      # ⬇️ INÍCIO DO STEP 6 (DEVE ESTAR PERFEITAMENTE ALINHADO COM O STEP 5)
       - name: 6. Adicionar Plataforma Android
         run: |
           cordova platform add android@10.1.2
