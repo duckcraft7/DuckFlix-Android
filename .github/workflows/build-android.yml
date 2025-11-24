@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest # ✅ Volta para o ambiente mais disponível
+    runs-on: ubuntu-latest
 
     steps:
       - name: 1. Checkout Code
@@ -39,22 +39,23 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Add Android Platform (Versão Estável)
-        # Mantém a versão 10.1.2 para evitar o erro XmlParser.
+      - name: 6. Add Android Platform
         run: cordova platform add android@10.1.2
 
-      # ⚠️ Step 7 (Forçar Gradle) FOI REMOVIDO ⚠️
-          
-      - name: 7. Construir o Aplicativo Android (APK)
+      - name: 7. Injetar Dependência XmlParser
+        # CRÍTICO: Injeta a dependência Groovy (groovy-xml) necessária no build.gradle para resolver o erro 'XmlParser' no Gradle 9.x.
+        run: |
+          sed -i '/dependencies {/a \        classpath "org.codehaus.groovy:groovy-xml:3.0.17"' platforms/android/build.gradle
+
+      - name: 8. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
-      - name: 8. Skip Signing
+      - name: 9. Skip Signing
         run: echo "Skipping signing step."
         
-      - name: 9. Publish Artifact
+      - name: 10. Publish Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-          
