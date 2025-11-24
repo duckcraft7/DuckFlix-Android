@@ -3,14 +3,14 @@ name: Build Android APK (Cordova DuckFlix)
 on:
   push:
     branches:
-      - main
+      - main  # Dispara a construção quando há push na branch principal
   pull_request:
     branches:
       - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-latest  # Ambiente Linux do GitHub Actions
 
     steps:
       - name: 1. Checkout do Código
@@ -22,6 +22,7 @@ jobs:
           node-version: '20'
 
       - name: 3. Instalar Cordova
+        # CORREÇÃO: Instalamos apenas o Cordova globalmente (evita erro package.json).
         run: |
           npm install -g cordova
 
@@ -31,7 +32,8 @@ jobs:
           distribution: 'zulu'
           java-version: '17'
 
-      - name: 5. Criar Projeto Cordova
+      - name: 5. Criar Projeto Cordova (Corrigido o Caminho)
+        # CRÍTICO: Cria o projeto em pasta temporária para evitar o erro "Path already exists".
         run: |
           cordova create temp_cordova com.duckcraft7.duckflix DuckFlix
           cp temp_cordova/config.xml .
@@ -40,30 +42,20 @@ jobs:
           mv temp_cordova/* .
           rm -rf temp_cordova
           
-      - name: 6. Adicionar Plataforma Android
-        # Usa a versão 10.1.2 para maior estabilidade
+      - name: 6. Adicionar Plataforma Android (Compatibilidade Gradle Corrigida)
+        # CRÍTICO: Usa a versão 10.1.2 para corrigir o erro 'XmlParser'.
         run: |
           cordova platform add android@10.1.2
 
-      - name: 7. CORREÇÃO CRÍTICA: Injetar Dependência do XmlParser (Groovy)
-        # Este passo injeta a dependência que o Gradle 9.x está pedindo (XmlParser).
-        run: |
-          ROOT_GRADLE_FILE="platforms/android/build.gradle"
-          DEPENDENCY="classpath 'org.codehaus.groovy:groovy-xml:3.0.17'"
-          
-          # Injeta a dependência no bloco buildscript/dependencies
-          sed -i '/buildscript {/a \  \/\/ Injetado para corrigir erro XmlParser\n  buildscript {\n    dependencies {\n      '"$DEPENDENCY"'\n    }\n  }\n' "$ROOT_GRADLE_FILE"
-
-      - name: 8. Construir o Aplicativo Android (APK)
+      - name: 7. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
-      - name: 9. Assinar o APK (Opcional)
+      - name: 8. Assinar o APK (Opcional)
         run: echo "Ignorando etapa de assinatura (keystore)."
         
-      - name: 10. Publicar o APK como Artifact
+      - name: 9. Publicar o APK como Artifact
         uses: actions/upload-artifact@v4
         with:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
-
