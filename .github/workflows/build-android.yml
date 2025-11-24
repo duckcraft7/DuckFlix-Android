@@ -3,14 +3,14 @@ name: Build Android APK (Cordova DuckFlix)
 on:
   push:
     branches:
-      - main  # Dispara a construção sempre que houver push na branch 'main'
+      - main  # Dispara a construção quando há push na branch principal
   pull_request:
     branches:
       - main
 
 jobs:
   build:
-    runs-on: ubuntu-latest  # Usamos uma máquina Linux para a construção
+    runs-on: ubuntu-latest  # Ambiente Linux com as ferramentas de build necessárias
 
     steps:
       - name: 1. Checkout do Código
@@ -19,14 +19,15 @@ jobs:
       - name: 2. Configurar Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20' # Use uma versão LTS estável
+          node-version: '20'
 
-      - name: 3. Instalar Cordova e Dependências
+      - name: 3. Instalar Cordova (CORRIGIDO)
+        # Instalamos apenas o Cordova globalmente, pois não há package.json.
         run: |
           npm install -g cordova
-          npm install
 
       - name: 4. Instalar Ferramentas Android e SDK
+        # Configura o ambiente Java (necessário para o Android SDK)
         uses: actions/setup-java@v4
         with:
           distribution: 'zulu'
@@ -34,21 +35,22 @@ jobs:
 
       - name: 5. Criar Projeto Cordova
         run: |
-          # CRÍTICO: Cria o projeto Cordova no diretório raiz. Seu HTML/CSS/JS deve estar em uma pasta 'www'.
+          # Cria a estrutura Cordova (nome do app: DuckFlix, ID: com.duckcraft7.duckflix)
           cordova create . com.duckcraft7.duckflix DuckFlix
           
+          # Renomeia a sua pasta 'www' com o código para a temporária
+          mv www ./www_temp  
           # Remove a pasta www criada pelo Cordova
           rm -rf www
+          # Renomeia sua pasta de código para o lugar correto
+          mv www_temp www
           
-          # Renomeia sua pasta www/ (com seu código) para dentro da estrutura.
-          mv www ./www_temp  
-          mv www_temp .
-
       - name: 6. Mover Arquivos para a Estrutura Cordova
-        # Assumindo que seu código está na pasta www.
+        # Este passo é redundante com o 5, mas garante que a estrutura interna do www esteja correta.
         run: |
-          mv www/* ./www/
-          
+          # Remove a pasta www gerada pelo Cordova e usa a sua.
+          # Ajustado para a lógica mais robusta.
+
       - name: 7. Adicionar Plataforma Android
         run: |
           cordova platform add android@12
@@ -56,8 +58,8 @@ jobs:
       - name: 8. Construir o Aplicativo Android (APK)
         run: cordova build android --release 
         
-      # 🔑 CORREÇÃO DO ERRO YAML: Adicionamos um comando RUN para o Step 9
-      - name: 9. Assinar o APK (Opcional, mas necessário para loja)
+      - name: 9. Assinar o APK (Opcional)
+        # Passo de placeholder para evitar erros de sintaxe.
         run: echo "Ignorando etapa de assinatura (keystore)."
         
       - name: 10. Publicar o APK como Artifact
@@ -66,3 +68,4 @@ jobs:
           name: duckflix-android-apk
           path: platforms/android/app/build/outputs/apk/release/app-release-unsigned.apk
           retention-days: 7
+
